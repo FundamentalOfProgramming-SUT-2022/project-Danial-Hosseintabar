@@ -2,57 +2,40 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_SIZE 50
+#include "createfile.c"
+#include "input.c"
+#include "insertstr.c"
+#include "cat.c"
+
+#define MAX_SIZE 10000
 
 int check_exit(char *command){
-	return !memcmp(command , "exit" , 4) && command[4] == NULL ;
+	return !strcmp(command , "exit" ) ;
 }
 
-void get_double_quote(char string[MAX_SIZE]){
-	scanf("%c" , string ) ;
-	if(string[0] == '"'){
-		for(int i = 0 ; ; i++ ){
-			string[i] = getchar() ;
-			if(string[i] == '"'){
-				string[i] = '\0' ;
-				break ;
-			}
-		}
-	}
-	else{	
-		scanf("%s" , string+1) ;
-	}
-	return &string[0] ;
-}
-
-int check_createfile(char *command){
-	char opt[MAX_SIZE] ;
-	char add[MAX_SIZE] ;
-	if(memcmp(command , "createfile" , 10)) return 0 ;
-	scanf("%s" , opt) ;
-	if(memcmp(opt , "-file" , 5)) return 0 ;
-	getchar() ;
-	get_double_quote(add) ;
-	printf("FILE CREATED SUCCESSFULLY : ( %s )\n" , add ) ;
-	FILE *fob = fopen(add , "a") ;
-	fclose(fob) ;
-	return 1 ;
+void get_text( char string[MAX_SIZE] ){
+	scanf("%s" , string) ;
 }
 
 int main(){
-	
+
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
-	
+
 	while(1){
-		int command_run = 0 ;	
+		int command_run = 0 ;
 		char command[MAX_SIZE] ;
-		
-		scanf("%s" , command) ;	
-		
+
+		scanf("%s" , command) ;
+
+		// USE ARRAY !!!
+
 		if( check_exit(command) )
 			break ;
-		
+
 		if( check_createfile(command) ){
+			command_run = 1 ;
+		}
+		if( check_insertstr(command) ){
 			command_run = 1 ;
 		}
 
@@ -61,19 +44,9 @@ int main(){
 		}
 
 	}
-	
+
 	printf("Press Enter to exit ...") ;
 	getchar() ;
 }
-
-
-
-
-
-
-
-
-
-
 
 
