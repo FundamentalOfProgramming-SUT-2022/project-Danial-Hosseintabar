@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 
 #include "input.c"
 
@@ -95,6 +96,7 @@ int check_removestr(char *command){
 	int size ;
 	int mode ;
 
+	if(strcmp(command , "removestr")) return 0 ;
 	scanf("%s" , arg) ;
 	if(strcmp(arg,"-file")) return 0 ;
 	scanf("%s" , file_name);
@@ -134,6 +136,64 @@ int check_removestr(char *command){
 
 }
 
+int check_copystr(char *command){
+	char arg[MAX_SIZE] ;
+	char file_name[MAX_SIZE] ;
+	int size = 0 ;
+	int str_size = 0 ;
+	int line_pos ;
+	int char_pos ;
+	int mode ;
+
+	if(strcmp(command,"copystr")) return 0 ;
+	
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-file")) return 0 ;
+	getchar() ;
+	get_address(file_name) ;
+	
+	scanf("%s",arg) ;
+	if(strcmp("-pos",arg)) return 0 ;
+	scanf("%d:%d" , &line_pos , &char_pos) ;
+	
+	scanf("%s",arg) ;
+	if(strcmp("-size",arg)) return 0 ;
+	scanf("%d" , &size) ;
+
+	scanf("%s" , arg) ;
+	if(!strcmp(arg,"-b")) mode = 1 ;
+	else mode = 0 ;
+	
+	char trash[MAX_SIZE] ; 
+	char str[MAX_SIZE] ;
+
+	FILE *fob = fopen(file_name , "r") ;
+	readto(trash , fob , line_pos , char_pos) ;
+	fseek(fob , -size*mode , SEEK_CUR) ;
+	for(int i = 0 ; i < size ; i++){
+		char c = fgetc(fob) ;
+		str[str_size] = c ;
+		str_size++ ;
+	}
+	str[str_size] = '\0' ;
+	fclose(fob) ;
+	
+	// COPYING THE TEXT TO CLIPBOARD
+	const char* output = str ;
+	const size_t len = strlen(output) + 1;
+	HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, len);
+	memcpy(GlobalLock(hMem), output, len);
+	GlobalUnlock(hMem);
+	OpenClipboard(0);
+	EmptyClipboard();
+	SetClipboardData(CF_TEXT, hMem);
+	CloseClipboard();
+
+	//printf("following text is copied :\n%s\n",str) ;
+	
+	return 1 ;
+}
+
 int main(){
 
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
@@ -146,14 +206,14 @@ int main(){
 
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr } ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr } ;
 		
-		for(int i = 0 ; i < 4 ; i++){
+		for(int i = 0 ; i < 5 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}
 		}
-		
+
 		if(command_run == 0){
 			char trash[MAX_SIZE] ;
 			gets(trash) ;
