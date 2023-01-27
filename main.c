@@ -194,6 +194,104 @@ int check_copystr(char *command){
 	return 1 ;
 }
 
+int check_cutstr(char *command){
+	char arg[MAX_SIZE] ;
+	char file_name[MAX_SIZE] ;
+	int size = 0 ;
+	int str_size = 0 ;
+	int line_pos ;
+	int char_pos ;
+	int mode ;
+
+	if(strcmp(command,"cutstr")) return 0 ;
+	
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-file")) return 0 ;
+	getchar() ;
+	get_address(file_name) ;
+	
+	scanf("%s",arg) ;
+	if(strcmp("-pos",arg)) return 0 ;
+	scanf("%d:%d" , &line_pos , &char_pos) ;
+	
+	scanf("%s",arg) ;
+	if(strcmp("-size",arg)) return 0 ;
+	scanf("%d" , &size) ;
+
+	scanf("%s" , arg) ;
+	if(!strcmp(arg,"-b")) mode = 1 ;
+	else mode = 0 ;
+
+	char string[MAX_SIZE] ;
+	FILE *fob = fopen(file_name , "r+") ;
+	char text_pre[MAX_SIZE] ;
+	char text_post[MAX_SIZE] ;
+	readto(text_pre , fob , line_pos , char_pos ) ;
+	readrest(text_post , fob) ;
+	fclose(fob) ;
+	fopen(file_name , "w") ;
+	if(mode){
+		for(int i = strlen(text_pre)-size ; i < strlen(text_pre) ; i++ ){
+			string[i + size -strlen(text_pre) ] = text_pre[i] ;
+			text_pre[i] = '\0' ;
+		}
+		string[size] = '\0' ;
+	}
+	else{
+		for(int i = 0 ; i < size ; i++)
+			string[i] = text_post[i] ;
+		string[size] = '\0' ;
+	}
+	fprintf(fob , "%s%s" , text_pre , text_post + (1-mode)*size*sizeof(char) ) ;
+	fclose(fob) ;
+	// COPYING THE TEXT TO CLIPBOARD
+	const char* output = string ;
+	const size_t len = strlen(output) + 1;
+	HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, len);
+	memcpy(GlobalLock(hMem), output, len);
+	GlobalUnlock(hMem);
+	OpenClipboard(0);
+	EmptyClipboard();
+	SetClipboardData(CF_TEXT, hMem);
+	CloseClipboard();
+	//printf("the following text is cut :\n%s\n",string) ;
+	return 1 ;
+}
+
+int check_pastestr(char *command){
+	int line_pos ;
+	int char_pos ;
+	char arg[MAX_SIZE] ;
+	char file_name[MAX_SIZE] ;
+	char string[MAX_SIZE] ;
+
+	if(strcmp(command,"pastestr")) return 0 ;
+	scanf("%s" , arg) ;
+	if(strcmp("-file",arg)) return 0 ;
+	getchar() ;
+	get_address(file_name) ;
+	scanf("%s" , arg) ;
+	if(strcmp("-pos",arg)) return 0 ;
+	scanf("%d:%d" , &line_pos , &char_pos) ;
+	
+	OpenClipboard(0) ;
+	HANDLE in = GetClipboardData(CF_TEXT) ;
+	strcpy(string , (char*)in) ;
+	CloseClipboard() ;
+
+	char text_pre[MAX_SIZE] ;
+	char text_post[MAX_SIZE] ;
+	FILE *fob = fopen(file_name , "r+") ;
+	readto(text_pre , fob , line_pos , char_pos) ;
+	readrest(text_post , fob) ;
+	fclose(fob) ;
+	fob = fopen(file_name , "w") ;
+	fprintf(fob , "%s%s%s",text_pre, string , text_post) ;
+	fclose(fob) ;
+	
+	return 1 ;
+}
+
 int main(){
 
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
@@ -206,9 +304,9 @@ int main(){
 
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr } ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr} ;
 		
-		for(int i = 0 ; i < 5 ; i++){
+		for(int i = 0 ; i < 7 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}
