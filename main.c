@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include "input.c"
+#include "functions.c"
 
 #define MAX_SIZE 100000
 
@@ -292,6 +293,89 @@ int check_pastestr(char *command){
 	return 1 ;
 }
 
+// \n \* not supported
+// byword not supported
+int check_find(char *command){
+	if(strcmp(command , "find")) return 0 ;
+	char string[MAX_SIZE] ;
+	char arg[MAX_SIZE] ;
+	char file_name[MAX_SIZE] ;
+	scanf("%s" , arg) ;
+	if(strcmp("-str" , arg)) return 0 ;
+	get_text(string) ;
+	scanf("%s" , arg) ;
+	if(strcmp(arg , "-file")) return 0 ;
+	scanf("%s" , file_name) ;
+	int at = -1 ;
+	int mask = 0 ; // mask = count , at , byword , all
+	char c = getchar() ;
+	
+	while(c!='\n'){
+		while(c==' ') c = getchar() ;
+		if(c == '\n') break ;
+		scanf("%s" , arg) ;
+		
+		if(!strcmp(arg,"count")){
+			mask += (1<<3) ;
+			c = getchar() ;
+			if(c=='\n') break ;
+			}
+		if(!strcmp(arg,"at")){
+			mask += (1<<2) ;
+			scanf("%d" , &at) ;
+			c = getchar() ;
+			if(c=='\n') break ;
+		}
+		if(!strcmp(arg,"byword")){
+			mask += (1<<1) ;
+			c = getchar() ;
+			if(c=='\n') break ;
+		}
+		if(!strcmp(arg,"all")){
+			mask += 1 ;
+			c = getchar() ;
+			if(c == '\n') break ;
+			}
+	}
+	
+	char *text = (char*) malloc(MAX_SIZE * sizeof(char) ) ;
+	FILE *fob = fopen(file_name , "r") ;
+	readrest(text , fob) ;
+	fclose(fob) ;
+	
+	int ans[MAX_SIZE] ;
+	for(int i = 0 ; i < MAX_SIZE ; i++) ans[i] = -1 ;
+	int count = 0 ;
+	int ok = 0 ;
+	for(int i = 0 ; i < strlen(text) ; i++){
+		if( is_prefix(string , text+i) ){
+			ans[count] = i ;
+			count++ ;
+			ans[count] = -1 ;
+		}
+	}
+	if(!count) printf("-1\n") ;
+
+	if(mask >> 3){
+		printf("%d" , count);
+	}
+	if((mask >> 2)&1){
+		printf("%d" , ans[at-1]) ;
+	}
+	if(mask&1){
+		for(int i = 0;ans[i]!=-1;i++){
+			printf("%d", ans[i] ) ;
+			if(ans[i+1]!=-1) printf(",") ;
+			else printf("\n") ;
+		}
+	}
+	if(mask == 0){
+		printf("%d\n" , ans[0]) ;
+	}
+	return 1 ;
+
+}
+
 int main(){
 
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
@@ -304,9 +388,9 @@ int main(){
 
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr} ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find } ;
 		
-		for(int i = 0 ; i < 7 ; i++){
+		for(int i = 0 ; i < 8 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}

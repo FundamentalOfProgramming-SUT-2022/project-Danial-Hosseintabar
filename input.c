@@ -2,10 +2,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+
 #define MAX_SIZE 100000
 
-void get_address(char string[MAX_SIZE]){
-	scanf("%c" , string ) ;
+void get_address(char *string){
+	string[0] = getchar() ;
+	while(string[0] == ' ') string[0] = getchar() ;
 	if(string[0] == '"'){
 		for(int i = 0 ; ; i++ ){
 			string[i] = getchar() ;
@@ -19,6 +21,31 @@ void get_address(char string[MAX_SIZE]){
 		scanf("%s" , string+1) ;
 	}
 
+}
+
+// doesn't support \n \\
+
+void get_text(char *string){
+	string[0] = getchar() ;
+	while(string[0] == ' ') string[0] = getchar() ;
+	if(string[0] == '"' ){
+		for(int i = 0 ; ;i++){
+			string[i] = getchar() ;
+			if(string[i] == '"' && string[i-1] != '\\' ){
+				string[i] = '\0' ;
+				break ;
+			}
+		}
+	}
+	else{
+		for(int i = 1 ; ; i++){
+			string[i] = getchar() ;
+			if(string[i] == ' ' ){
+				string[i] = '\0' ;
+				break ;
+			}
+		}
+	}
 }
 
 void readrest( char *str , FILE *fob){
