@@ -3,10 +3,9 @@
 #include <string.h>
 #include <windows.h>
 
-#include "input.c"
 #include "functions.c"
 
-#define MAX_SIZE 100000
+struct snapshot file_history[MAX_SIZE] ;
 
 int check_exit(char *command){
 	return !strcmp(command , "exit" ) ;
@@ -53,6 +52,8 @@ int check_insertstr(char *command){
 	// debug : printf("file : %s , str : %s , line_pos : %d , char_pos : %d \n" , file_name , string , line_pos , char_pos ) ;
 
 	FILE *fob = fopen(file_name , "r+" ) ;
+
+	//take_snapshot(fob , file_name , file_history) ;
 
 	for(int i = 0 ; i < line_pos-1 ; i++){
 		char string_tmp[MAX_SIZE] ;
@@ -459,9 +460,42 @@ int check_replace(char *command){
 	return 1 ;
 }
 
+int check_undo(char *command){
+	if(strcmp(command,"undo")) return 0 ;
+	char arg[MAX_SIZE] ;
+	char file_name[MAX_SIZE];
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-file")) return 0 ;
+	scanf("%s" , file_name) ;
+	for(int i = 0 ;file_history[i].file_name[0] != '\0' ;i++ ){
+		if(strcmp(file_history[i].file_name , file_name)) continue ;
+			
+			int index = 0 ;
+			while(file_history[i].snapshot[index][0]!='\0') index++ ;
+			index-- ;
+			printf("%s" , file_history[i].snapshot[index]) ;
+			file_history[i].snapshot[index][0] = '\0' ; 
+		
+		break ;
+	}
+}
+
+int check_tree(char *command){
+	if(strcmp(command,"tree")) return 0 ;
+	int depth ;
+	if(!scanf("%d" , &depth)) return 0 ;
+	dirtree_search("." , depth , depth+1) ;
+	return 1 ;
+}
+
 int main(){
 
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
+
+	// reseting all snapshots in file_history 
+	for(int i = 0 ; i < MAX_SIZE ; i++){
+		reset_snapshot(&file_history[i]) ;
+	}
 
 	while(1){
 		int command_run = 0 ;
@@ -471,9 +505,9 @@ int main(){
 
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace } ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_undo , check_tree } ;
 		
-		for(int i = 0 ; i < 9 ; i++){
+		for(int i = 0 ; i < 11 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}
