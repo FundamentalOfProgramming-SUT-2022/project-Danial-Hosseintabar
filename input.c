@@ -5,9 +5,10 @@
 
 #define MAX_SIZE 100000
 
-void get_address(char *string){
+int get_address(char *string){
 	string[0] = getchar() ;
 	while(string[0] == ' ') string[0] = getchar() ;
+	if(string[0] == '\n') return 0 ;
 	if(string[0] == '"'){
 		for(int i = 0 ; ; i++ ){
 			string[i] = getchar() ;
@@ -20,11 +21,10 @@ void get_address(char *string){
 	else{
 		scanf("%s" , string+1) ;
 	}
-
+	return 1 ;
 }
 
-// doesn't support \n \\
-
+// doesn't support \n \\ \* \"
 void get_text(char *string){
 	string[0] = getchar() ;
 	while(string[0] == ' ') string[0] = getchar() ;

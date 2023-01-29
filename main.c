@@ -7,10 +7,6 @@
 
 struct snapshot file_history[MAX_SIZE] ;
 
-int check_exit(char *command){
-	return !strcmp(command , "exit" ) ;
-}
-
 int check_createfile(char *command){
 	char opt[MAX_SIZE] ;
 	char add[MAX_SIZE] ;
@@ -480,6 +476,59 @@ int check_undo(char *command){
 	}
 }
 
+int check_grep(char *command){
+	if(strcmp(command , "grep")) return 0 ;
+	int mode = 0 ; // 0 : normal , 1 : -l , 2 : -c
+	char arg[MAX_SIZE] ;
+	char string[MAX_SIZE] ;
+	char file_name[MAX_SIZE] ;
+	char *text = (char*)malloc(MAX_SIZE*sizeof(char)) ;
+	scanf("%s" , arg) ;
+	
+	if(!strcmp(arg,"-str")) mode = 0 ;
+	else if(!strcmp(arg , "-l")){
+		mode = 1 ;
+	}
+	else if(!strcmp(arg,"-c")){
+		mode = 2 ;
+	}
+	else {return 0 ;}
+	
+	if(mode != 0){
+		scanf("%s" , arg) ;
+		if(strcmp(arg , "-str")) { return 0 ;}
+	}
+
+	get_text(string) ;
+	scanf("%s" , arg) ;
+	if(strcmp("-files" , arg)) return 0 ;
+	int count =  0;
+	while(get_address(file_name)){
+		int file_ok = 0 ;
+		FILE *fob = fopen(file_name , "r") ;
+		readrest(text , fob) ;
+		fclose(fob) ;
+		for(int u = 0 , i = 0 ; i < strlen(text) ; i++){
+			if(text[i] == '\n') u = i+1 ; 
+			if(is_prefix(string , text+i)){
+				file_ok = 1 ;
+				count++ ;
+				if(mode != 2) printf("%s" , file_name) ;
+				if(mode == 0) printf(" : ") ;
+				for(int j = u ; text[j] != '\n' && text[j] != EOF && j < strlen(text) ; j++){
+					if(mode == 0) printf("%c" , text[j]) ;
+					i = j ;
+				}
+				if(mode != 2) printf("\n") ;
+			}
+			if(file_ok && mode == 1) break ;
+		}
+		if(file_ok && mode == 1) continue ;
+	}
+	if(mode == 2) printf("%d\n" , count) ;
+	return 1 ;
+}
+
 int check_tree(char *command){
 	if(strcmp(command,"tree")) return 0 ;
 	int depth ;
@@ -502,12 +551,12 @@ int main(){
 		char command[MAX_SIZE] ;
 
 		scanf("%s" , command) ;
-
+		
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_undo , check_tree } ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_grep , check_undo , check_tree } ;
 		
-		for(int i = 0 ; i < 11 ; i++){
+		for(int i = 0 ; i < 12 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}
