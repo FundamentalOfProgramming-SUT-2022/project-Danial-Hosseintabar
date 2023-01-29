@@ -81,6 +81,14 @@ int is_prefix(char *prefix , char *string){
 	return 1 ;
 }
 
+int cmp( const void* a ,const void *b){
+	return *((int*)a) > *((int*)b) ;
+}
+
+void print_tab(int x , FILE *fob){
+	for(int i = 0 ;i  < x ;i++) fprintf(fob , "    ") ;
+}
+
 void take_snapshot(FILE *fob , char* file_name , struct snapshot file_history[] ){
 	fseek(fob , 0 , SEEK_END) ;
 	char *text = (char*)malloc(ftell(fob) * sizeof(char)) ;

@@ -537,6 +537,68 @@ int check_tree(char *command){
 	return 1 ;
 }
 
+int check_auto_indent(char *command){
+	if(strcmp(command,"auto-indent")) return 0 ;
+	char arg[MAX_SIZE] ;
+	char file_name[MAX_SIZE] ;
+	scanf("%s" , arg) ;
+	if(strcmp(arg , "-file")) return 0 ;
+	get_address(file_name) ;
+	
+	char *text = (char*) malloc(MAX_SIZE*sizeof(char)) ;
+	FILE *fob = fopen(file_name , "r") ;
+	readrest(text , fob) ;
+	fclose(fob) ;
+	int opening[MAX_SIZE] ;
+	int closing[MAX_SIZE] ;
+	int tmp_op[MAX_SIZE] ;
+	int tmp_op_size = 0 ;
+	int closing_size = 0 ;
+	int opening_size = 0 ;
+	
+	for(int i = 0 ; i < strlen(text) ; i++){
+		if(text[i] == '{'){
+			tmp_op[tmp_op_size] = i ;
+			tmp_op_size++ ;
+		}
+		if(text[i] == '}' && tmp_op_size > 0){
+			tmp_op_size-- ;
+			opening[opening_size] = tmp_op[tmp_op_size] ;
+			opening_size++ ;
+			closing[closing_size] = i ;
+			closing_size++ ;
+		}
+	}
+	qsort(opening , opening_size , sizeof(int) , cmp) ;
+	qsort(closing , closing_size , sizeof(int) , cmp) ;
+	fob = fopen(file_name , "w") ;
+	for(int op_index = 0 , cl_index = 0 , tab = 0 , i = 0 ; i < strlen(text) ; i++){
+		if( cl_index < closing_size && i == closing[cl_index] ){
+			fprintf(fob , "\n") ;
+			print_tab(tab-1 , fob) ;
+			fprintf(fob , "}\n") ;
+			tab-- ;
+			cl_index++ ;
+			print_tab(tab , fob) ;
+		}
+		else if( op_index < opening_size && i == opening[op_index] ){
+			if(i>0 && text[i-1] != '\n' && text[i-1] != ' ' ) fprintf(fob , " ") ;
+			fprintf(fob , "{\n") ;
+			tab++ ;
+			op_index++ ;
+			print_tab(tab , fob) ;
+		}
+		else if( text[i] == '\n' ){
+			fprintf(fob , "\n") ;
+			print_tab(tab,fob) ;
+		}
+		else fprintf(fob , "%c" , text[i]) ;
+	}
+	fclose(fob) ;
+	
+	return 1 ;
+}
+
 int main(){
 
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
@@ -554,9 +616,9 @@ int main(){
 		
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_grep , check_undo , check_tree } ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_grep , check_undo , check_auto_indent , check_tree } ;
 		
-		for(int i = 0 ; i < 12 ; i++){
+		for(int i = 0 ; i < 13 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}
