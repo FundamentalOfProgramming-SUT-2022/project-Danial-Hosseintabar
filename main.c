@@ -337,7 +337,7 @@ int check_find(char *command){
 			if(c == '\n') break ;
 			}
 	}
-	
+	printf("mask = %d\n" , mask) ;
 	char *text = (char*) malloc(MAX_SIZE * sizeof(char) ) ;
 	FILE *fob = fopen(file_name , "r") ;
 	readrest(text , fob) ;
@@ -347,11 +347,25 @@ int check_find(char *command){
 	for(int i = 0 ; i < MAX_SIZE ; i++) ans[i] = -1 ;
 	int count = 0 ;
 	int ok = 0 ;
-	for(int i = 0 ; i < strlen(text) ; i++){
-		if( is_prefix(string , text+i) ){
-			ans[count] = i ;
-			count++ ;
-			ans[count] = -1 ;
+	if(1&(mask>>1)){
+		int u = 0 ;
+		for(int i = 0 ; i < strlen(text) ; i++){
+			if(text[i] == ' ' || text[i] == '\n'){
+				u++;
+				while(text[i] == ' ' || text[i] == '\n') i++ ;
+			}
+			if( is_prefix(string , text+i) ){
+				ans[count] = u ;
+				count++ ;
+			}
+		}
+	}
+	else{
+		for(int i = 0 ; i < strlen(text) ; i++){
+			if( is_prefix(string , text+i) ){
+				ans[count] = i ;
+				count++ ;
+			}
 		}
 	}
 	if(!count) printf("-1\n") ;
@@ -376,6 +390,75 @@ int check_find(char *command){
 
 }
 
+int check_replace(char *command){
+	if(strcmp(command , "replace")) return 0 ;
+	
+	char arg[MAX_SIZE] ;
+	char string1[MAX_SIZE] ;
+	char string2[MAX_SIZE] ;
+	char file_name[MAX_SIZE] ;
+
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-str1")) return 0 ;
+	get_text(string1) ;
+
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-str2")) return 0 ;
+	get_text(string2) ;
+
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-file")) return 0 ;
+	get_address(file_name) ;
+
+	int at ;
+	int mode = 0 ; // 0 : normal , 1 : at , 2 : all
+	char c = getchar() ;
+	while(c == ' ') c = getchar() ;
+	if(c != '\n'){
+		scanf("%s" , arg) ;
+		if(!strcmp(arg,"at")){
+			scanf("%d" , &at) ;
+			mode = 1 ;
+		}
+		else if(!strcmp(arg,"all")){
+			mode = 2 ;
+		}
+	}
+
+	char *text = (char*)malloc(MAX_SIZE*sizeof(char)) ;
+	FILE *fob = fopen(file_name , "r");
+	readrest(text , fob) ;
+	fclose(fob) ;
+
+	int ans[MAX_SIZE] ;
+	for(int i = 0 ; i < MAX_SIZE ; i++) ans[i] = -1 ;
+	int count = 0 ;
+
+	// finding all matches that don't have shared charachters :
+	for(int i = 0 ; i < strlen(text) ; i++){
+		if(is_prefix(string1 , text+i)){
+			ans[count] = i ;
+			count++ ;
+			i+=strlen(string1)-1;
+		}
+	}
+
+	fob = fopen(file_name , "w") ;
+	for(int u = 0 , i = 0 ; i < strlen(text) ; i++){
+		if(ans[u] == i){
+			u++ ;
+			fprintf(fob , "%s" , string2) ;
+			i+= strlen(string1) - 1 ;
+			if(mode == 0) break ;
+			continue; 
+		}
+		fprintf(fob , "%c" , text[i] ) ;
+	}
+	fclose(fob) ;
+
+	return 1 ;
+}
+
 int main(){
 
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
@@ -388,9 +471,9 @@ int main(){
 
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find } ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace } ;
 		
-		for(int i = 0 ; i < 8 ; i++){
+		for(int i = 0 ; i < 9 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}
