@@ -48,7 +48,7 @@ int check_insertstr(char *command){
 	scanf("%s" , opt ) ;
 	if(strcmp(opt , "-pos")) return 0 ;
 	if(2!=scanf("%d:%d" , &line_pos , &char_pos)) return 0 ;
-
+	
 	// debug : printf("file : %s , str : %s , line_pos : %d , char_pos : %d \n" , file_name , string , line_pos , char_pos ) ;
 
 	FILE *fob = fopen(file_name , "r+" ) ;
@@ -484,8 +484,8 @@ int check_grep(char *command){
 	char string[MAX_SIZE] ;
 	char file_name[MAX_SIZE] ;
 	char *text = (char*)malloc(MAX_SIZE*sizeof(char)) ;
-	scanf("%s" , arg) ;
 	
+	scanf("%s" , arg) ;
 	if(!strcmp(arg,"-str")) mode = 0 ;
 	else if(!strcmp(arg , "-l")){
 		mode = 1 ;
@@ -493,24 +493,28 @@ int check_grep(char *command){
 	else if(!strcmp(arg,"-c")){
 		mode = 2 ;
 	}
-	else {return 0 ;}
-	
-	if(mode != 0){
+	else if(!arman_mode) {return 0 ;}
+
+	if( !arman_mode && mode != 0){
 		scanf("%s" , arg) ;
 		if(strcmp(arg , "-str")) { return 0 ;}
 	}
-
 	if(!arman_mode) get_text(string) ;
 	else{
-		arman_mode = 0 ;
 		fseek(tmp_file , 0 , SEEK_SET) ;
 		readrest(string , tmp_file) ;
 	}
-
-	scanf("%s" , arg) ;
-	if(strcmp("-files" , arg)) return 0 ;
+	if(!arman_mode){
+		scanf("%s" , arg) ;
+		if(strcmp("-files" , arg)) return 0 ;
+	}
+	if(arman_mode) arman_mode = 0 ;
 	int count =  0;
 	while(get_address(file_name)){
+		if( !strcmp(file_name,"=D") ){
+			arman_mode = 1 ;
+			break ;
+		}
 		int file_ok = 0 ;
 		FILE *fob = fopen(file_name , "r") ;
 		readrest(text , fob) ;
@@ -520,19 +524,36 @@ int check_grep(char *command){
 			if(is_prefix(string , text+i)){
 				file_ok = 1 ;
 				count++ ;
-				if(mode != 2) printf("%s" , file_name) ;
-				if(mode == 0) printf(" : ") ;
+				if(mode != 2){
+					printf("%s" , file_name) ;
+					fprintf(tmp_file , "%s" , file_name) ;
+				}
+				if(mode == 0){
+					printf(" : ") ;
+					fprintf(tmp_file , " : ") ;
+				}
 				for(int j = u ; text[j] != '\n' && text[j] != EOF && j < strlen(text) ; j++){
-					if(mode == 0) printf("%c" , text[j]) ;
+					if(mode == 0){
+						printf("%c" , text[j]) ;
+						fprintf(tmp_file , "%c" , text[j]) ;
+					}
 					i = j ;
 				}
-				if(mode != 2) printf("\n") ;
+				if(mode != 2){
+					printf("\n") ;
+					fprintf(tmp_file , "\n") ;
+				}
 			}
 			if(file_ok && mode == 1) break ;
 		}
 		if(file_ok && mode == 1) continue ;
 	}
-	if(mode == 2) printf("%d\n" , count) ;
+	fflush(tmp_file) ;
+	if(mode == 2){
+		printf("%d\n" , count) ;
+		fprintf(tmp_file , "%d\n" , count);
+	}
+	
 	return 1 ;
 }
 
