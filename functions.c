@@ -18,8 +18,8 @@ void reset_snapshot(struct snapshot* snapshot_ptr){
 	(*snapshot_ptr).snapshot = NULL ;
 }
 
-void dirtree_search(char *add , int depth , int N){
-	for(int i = 0 ; i < N-1-depth ; i++) printf("    ");
+void dirtree_search(char *add , int depth , int N , FILE *fob){
+	for(int i = 0 ; i < N-1-depth ; i++){printf("    "); fprintf(fob , "    " ) ;}
 	int p = 0;
 	for(int i = strlen(add) ; i >= 0 ; i--){
 		if(add[i] == '/'){
@@ -28,14 +28,17 @@ void dirtree_search(char *add , int depth , int N){
 		}
 	}
 	printf("%s" , add+p);
+	fprintf(fob , "%s" , add+p) ;
 	int ret = 0 ;
   	struct dirent *files;
  	DIR *dir = opendir(add);
    	if (dir == NULL){
 			printf("\n");
+			fprintf(fob , "\n") ;
       		return ;
    	}
 	printf(" :\n") ;
+	fprintf(fob , " :\n") ;
 	int u = 0 ;
    	while ((files = readdir(dir)) != NULL){
 		if( u < 2 ){u++ ; continue ;}
@@ -45,13 +48,15 @@ void dirtree_search(char *add , int depth , int N){
 		strcat(add_temp , "/" ) ;
 		strcat(add_temp , files->d_name);
 		if(depth > 0){
-			dirtree_search(add_temp , depth-1 , N) ;
+			dirtree_search(add_temp , depth-1 , N , fob) ;
 		}
 		else{	
 			for(int i = 0 ; i < N-depth-1 ; i++){
 				printf("     ") ;
+				fprintf(fob , "    ") ;
 			}
 			printf("    %s\n" , files->d_name) ;
+			fprintf(fob , "    %s\n" , files->d_name) ;
 		} 
 		//printf("%s\n", files->d_name);
    	}
@@ -118,6 +123,17 @@ void take_snapshot(FILE *fob , char* file_name , struct snapshot file_history[] 
 	}
 }
 
+int check_arman(){
+	char c = getchar() ;
+	while( c == ' ' ) c = getchar() ;
+	if(c == '\n'){
+		return 0 ;
+	}
+	else if( c == '=' && getchar() == 'D'){
+		return 1 ;
+	}
+}
+
 int getwords(char *text , char words[][50] ){
 	int index = 0 ;
 	int wordcount = 0 ;
@@ -134,4 +150,9 @@ int getwords(char *text , char words[][50] ){
 		wordcount++ ;
 	}
 	return wordcount ;
+}
+
+void clear_file(char* file_name){
+	FILE *fob = fopen(file_name , "w") ;
+	fclose(fob) ;
 }

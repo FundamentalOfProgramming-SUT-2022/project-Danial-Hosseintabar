@@ -5,6 +5,8 @@
 
 #define MAX_SIZE 100000
 
+
+
 int get_address(char *string){
 	string[0] = getchar() ;
 	while(string[0] == ' ') string[0] = getchar() ;
@@ -55,6 +57,14 @@ void readrest( char *str , FILE *fob){
 		str_size++ ;
 	}
 	str[str_size] = '\0' ;
+}
+
+int get_str_arg(char *string){ // returns 0 if fails
+	char arg[MAX_SIZE] ;
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-str")) return 0 ;
+	get_text(string) ;
+	return 1 ;
 }
 
 void readto(char *str , FILE *fob , int line_pos , int char_pos ){

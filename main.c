@@ -5,6 +5,10 @@
 
 #include "functions.c"
 
+int arman_mode = 0 ;
+char arman_str[MAX_SIZE] ;
+FILE *tmp_file ;
+
 struct snapshot file_history[MAX_SIZE] ;
 
 int check_createfile(char *command){
@@ -15,7 +19,6 @@ int check_createfile(char *command){
 	if(strcmp("-file" , opt)) return 0 ;
 	getchar() ;
 	get_address(add) ;
-	printf("FILE CREATED SUCCESSFULLY : ( %s )\n" , add ) ;
 	FILE *fob = fopen(add , "a") ;
 	fclose(fob) ;
 	return 1 ;
@@ -34,32 +37,29 @@ int check_insertstr(char *command){
 	if(strcmp(command , "insertstr")) return 0 ;
 	scanf("%s" , opt ) ;
 	if(strcmp(opt , "-file")) return 0 ;
-	getchar() ;
 	get_address(file_name) ;
-	scanf("%s" , opt ) ;
-	if(strcmp(opt , "-str")) return 0 ;
-	getchar() ;
-	get_address(string) ;
+	
+	if(!arman_mode){get_str_arg(string) ;}
+	else{
+		fseek(tmp_file , 0 , SEEK_SET) ;
+		readrest(string , tmp_file) ;
+		arman_mode = 0 ;
+	}
 	scanf("%s" , opt ) ;
 	if(strcmp(opt , "-pos")) return 0 ;
-	getchar() ;
 	if(2!=scanf("%d:%d" , &line_pos , &char_pos)) return 0 ;
 
 	// debug : printf("file : %s , str : %s , line_pos : %d , char_pos : %d \n" , file_name , string , line_pos , char_pos ) ;
 
 	FILE *fob = fopen(file_name , "r+" ) ;
-
-	//take_snapshot(fob , file_name , file_history) ;
-
-	for(int i = 0 ; i < line_pos-1 ; i++){
-		char string_tmp[MAX_SIZE] ;
-		fgets(string_tmp , MAX_SIZE , fob) ;
-	}
-
-	fseek(fob , char_pos*sizeof(char) , SEEK_CUR) ;
-	fprintf(fob , "%s" , string ) ;
+	char *text_pre = (char*) malloc(MAX_SIZE*sizeof(char)) ;
+	char *text_post = (char*) malloc(MAX_SIZE*sizeof(char)) ;
+	readto(text_pre , fob , line_pos , char_pos) ;
+	readrest(text_post , fob) ;
 	fclose(fob) ;
-
+	fob = fopen(file_name , "w") ;
+	fprintf(fob , "%s%s%s" ,text_pre , string , text_post) ;
+	fclose(fob) ;
 	return 1 ;
 
 }
@@ -72,17 +72,18 @@ int check_cat(char *command){
 	if(strcmp(opt,"-file")) return 0 ;
 	getchar() ;
 	get_address(add) ;
-
 	FILE *fob = fopen(add , "r") ;
-	char c = fgetc(fob);
-	while(c!=EOF){
-		printf("%c" , c) ;
-		c = fgetc(fob) ;
-	}
-	
-	printf("\n") ;
-	
+	char *text = (char*)malloc(MAX_SIZE*sizeof(char)) ;
+	readrest(text , fob) ;
+	printf("%s\n" , text) ;
 	fclose(fob) ;
+
+	if(check_arman()){
+		arman_mode = 1 ;
+		fprintf(tmp_file,"%s",text);
+		fflush(tmp_file) ;
+	}
+
 	return 1 ;
 }
 
@@ -297,9 +298,14 @@ int check_find(char *command){
 	char string[MAX_SIZE] ;
 	char arg[MAX_SIZE] ;
 	char file_name[MAX_SIZE] ;
-	scanf("%s" , arg) ;
-	if(strcmp("-str" , arg)) return 0 ;
-	get_text(string) ;
+	
+	if(!arman_mode) get_str_arg(string) ;
+	else{
+		fseek(tmp_file , 0 , SEEK_SET) ;
+		readrest(string,tmp_file) ;
+		arman_mode = 0 ;
+	}
+
 	scanf("%s" , arg) ;
 	if(strcmp(arg , "-file")) return 0 ;
 	scanf("%s" , file_name) ;
@@ -311,30 +317,25 @@ int check_find(char *command){
 		while(c==' ') c = getchar() ;
 		if(c == '\n') break ;
 		scanf("%s" , arg) ;
-		
 		if(!strcmp(arg,"count")){
 			mask += (1<<3) ;
-			c = getchar() ;
-			if(c=='\n') break ;
-			}
+		}
 		if(!strcmp(arg,"at")){
 			mask += (1<<2) ;
 			scanf("%d" , &at) ;
-			c = getchar() ;
-			if(c=='\n') break ;
 		}
 		if(!strcmp(arg,"byword")){
 			mask += (1<<1) ;
-			c = getchar() ;
-			if(c=='\n') break ;
 		}
 		if(!strcmp(arg,"all")){
 			mask += 1 ;
-			c = getchar() ;
-			if(c == '\n') break ;
-			}
+		}
+		if(!strcmp(arg , "D")){
+			arman_mode = 1 ;
+			break ;
+		}
 	}
-	printf("mask = %d\n" , mask) ;
+
 	char *text = (char*) malloc(MAX_SIZE * sizeof(char) ) ;
 	FILE *fob = fopen(file_name , "r") ;
 	readrest(text , fob) ;
@@ -365,24 +366,38 @@ int check_find(char *command){
 			}
 		}
 	}
-	if(!count) printf("-1\n") ;
+	if(!count){
+		printf("-1\n") ;
+		fprintf(tmp_file , "-1\n") ;	
+	}
 
 	if(mask >> 3){
-		printf("%d" , count);
+		printf("%d\n" , count);
+		fprintf(tmp_file , "%d\n" , count) ;
 	}
 	if((mask >> 2)&1){
 		printf("%d" , ans[at-1]) ;
+		fprintf(tmp_file , "%d" , ans[at-1]) ;
 	}
 	if(mask&1){
 		for(int i = 0;ans[i]!=-1;i++){
 			printf("%d", ans[i] ) ;
-			if(ans[i+1]!=-1) printf(",") ;
-			else printf("\n") ;
+			fprintf(tmp_file , "%d" , ans[i]) ;
+			if(ans[i+1]!=-1){
+				fprintf(tmp_file , ",") ;
+				printf(",") ;
+			}
+			else{
+				printf("\n") ;
+				fprintf(tmp_file , "\n") ;
+			}
 		}
 	}
 	if(mask == 0){
+		fprintf(tmp_file , "%d\n" , ans[0]) ;
 		printf("%d\n" , ans[0]) ;
 	}
+	fflush(tmp_file) ;
 	return 1 ;
 
 }
@@ -394,10 +409,17 @@ int check_replace(char *command){
 	char string1[MAX_SIZE] ;
 	char string2[MAX_SIZE] ;
 	char file_name[MAX_SIZE] ;
-
-	scanf("%s" , arg) ;
-	if(strcmp(arg,"-str1")) return 0 ;
-	get_text(string1) ;
+	if(!arman_mode){
+		scanf("%s" , arg) ;
+		if(strcmp(arg,"-str1")) return 0 ;
+		get_text(string1) ;
+	}
+	else{
+		fseek(tmp_file,0,SEEK_SET) ;
+		readrest(string1 , tmp_file) ;
+		printf(" string : %s",string1) ;
+		arman_mode = 0 ;
+	}
 
 	scanf("%s" , arg) ;
 	if(strcmp(arg,"-str2")) return 0 ;
@@ -446,34 +468,13 @@ int check_replace(char *command){
 			u++ ;
 			fprintf(fob , "%s" , string2) ;
 			i+= strlen(string1) - 1 ;
-			if(mode == 0) break ;
-			continue; 
+			continue ;
 		}
 		fprintf(fob , "%c" , text[i] ) ;
 	}
 	fclose(fob) ;
 
 	return 1 ;
-}
-
-int check_undo(char *command){
-	if(strcmp(command,"undo")) return 0 ;
-	char arg[MAX_SIZE] ;
-	char file_name[MAX_SIZE];
-	scanf("%s" , arg) ;
-	if(strcmp(arg,"-file")) return 0 ;
-	scanf("%s" , file_name) ;
-	for(int i = 0 ;file_history[i].file_name[0] != '\0' ;i++ ){
-		if(strcmp(file_history[i].file_name , file_name)) continue ;
-			
-			int index = 0 ;
-			while(file_history[i].snapshot[index][0]!='\0') index++ ;
-			index-- ;
-			printf("%s" , file_history[i].snapshot[index]) ;
-			file_history[i].snapshot[index][0] = '\0' ; 
-		
-		break ;
-	}
 }
 
 int check_grep(char *command){
@@ -499,7 +500,13 @@ int check_grep(char *command){
 		if(strcmp(arg , "-str")) { return 0 ;}
 	}
 
-	get_text(string) ;
+	if(!arman_mode) get_text(string) ;
+	else{
+		arman_mode = 0 ;
+		fseek(tmp_file , 0 , SEEK_SET) ;
+		readrest(string , tmp_file) ;
+	}
+
 	scanf("%s" , arg) ;
 	if(strcmp("-files" , arg)) return 0 ;
 	int count =  0;
@@ -529,11 +536,33 @@ int check_grep(char *command){
 	return 1 ;
 }
 
+int check_undo(char *command){
+	if(strcmp(command,"undo")) return 0 ;
+	char arg[MAX_SIZE] ;
+	char file_name[MAX_SIZE];
+	scanf("%s" , arg) ;
+	if(strcmp(arg,"-file")) return 0 ;
+	scanf("%s" , file_name) ;
+	for(int i = 0 ;file_history[i].file_name[0] != '\0' ;i++ ){
+		if(strcmp(file_history[i].file_name , file_name)) continue ;
+			
+			int index = 0 ;
+			while(file_history[i].snapshot[index][0]!='\0') index++ ;
+			index-- ;
+			printf("%s" , file_history[i].snapshot[index]) ;
+			file_history[i].snapshot[index][0] = '\0' ; 
+		
+		break ;
+	}
+}
+
 int check_tree(char *command){
 	if(strcmp(command,"tree")) return 0 ;
 	int depth ;
 	if(!scanf("%d" , &depth)) return 0 ;
-	dirtree_search("." , depth , depth+1) ;
+	dirtree_search("." , depth , depth+1 , tmp_file) ;
+	fflush(tmp_file) ;
+	if(check_arman()) arman_mode = 1 ;
 	return 1 ;
 }
 
@@ -664,21 +693,21 @@ int check_compare(char *command){
 }
 
 int main(){
-
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
-
 	// reseting all snapshots in file_history 
 	for(int i = 0 ; i < MAX_SIZE ; i++){
 		reset_snapshot(&file_history[i]) ;
 	}
-
+	
+	tmp_file = fopen("tmp_file.vim" , "w+") ;
 	while(1){
+		//clear_file("tmp_file.vim") ;
 		int command_run = 0 ;
 		char command[MAX_SIZE] ;
 
 		scanf("%s" , command) ;
 		
-		if(!strcmp("exit",command)) return 0 ;
+		if(!strcmp("exit",command)) break ;
 		
 		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_grep , check_undo , check_auto_indent , check_compare ,check_tree } ;
 		
@@ -695,4 +724,6 @@ int main(){
 		}
 
 	}
+	fclose(tmp_file) ;
+	remove("tmp_file.vim");
 }
