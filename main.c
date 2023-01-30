@@ -599,6 +599,70 @@ int check_auto_indent(char *command){
 	return 1 ;
 }
 
+int check_compare(char *command){
+	if(strcmp(command , "compare")) return 0 ;
+	char file_name1[MAX_SIZE] ;
+	char file_name2[MAX_SIZE] ;
+	get_address(file_name1) ;
+	get_address(file_name2) ;
+	FILE *fob1 = fopen(file_name1 , "r") ;
+	FILE *fob2 = fopen(file_name2 , "r") ;
+	int line_num1 =0;
+	int line_num2 =0;
+	char *text1 = (char*)malloc(MAX_SIZE*sizeof(char)) ;
+	char *text2 = (char*)malloc(MAX_SIZE*sizeof(char)) ;
+	readrest(text1,fob1);
+	readrest(text2,fob2);
+	fseek(fob1,0,SEEK_SET);
+	fseek(fob2,0,SEEK_SET);
+	for(int i = 0 ; i < strlen(text1) ; i++) if(text1[i] == '\n') line_num1++ ;
+	for(int i = 0 ; i < strlen(text2) ; i++) if(text2[i] == '\n') line_num2++ ;
+	int line = 1 ;
+	while(1){
+		if(NULL == fgets(text2 , MAX_SIZE , fob2)){ break ;}
+		if(NULL == fgets(text1 , MAX_SIZE , fob1)){ break ;}
+		line++ ;
+		text1[strlen(text1)-1] = (text1[strlen(text1)-1] == '\n' ? '\0' : text1[strlen(text1)-1]) ;
+		text2[strlen(text2)-1] = (text2[strlen(text2)-1] == '\n' ? '\0' : text2[strlen(text2)-1]) ;
+		if(!strcmp(text1,text2)) continue ;
+		char words1[1000][50] ;
+		char words2[1000][50] ;
+		int wordcount1 = getwords(text1 , words1) ;
+		int wordcount2 = getwords(text2 , words2) ;
+		int diff_word_count = 0 ;
+		int diff_word_index = 0 ;
+		for(int i = 0 ; i < min(wordcount2 , wordcount1) ; i++){
+			if(strcmp(words1[i] , words2[i])){diff_word_index = i ; diff_word_count++ ;}
+		}
+		if(wordcount1 != wordcount2 ) diff_word_count = 0 ;
+		printf("============ #%d ============\n",line) ;
+		if(text1[strlen(text1)-1] == '\n') text1[strlen(text1)-1] = '\0';
+		if(text2[strlen(text2)-1] == '\n') text2[strlen(text2)-1] = '\0';
+	}
+
+	if(line_num1 > line_num2){
+		printf(">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n",line,line_num1) ;
+		while(1){
+			if(NULL == fgets(text1 , MAX_SIZE , fob1)){break ;}
+			if(text1[strlen(text1)-1] == '\n') text1[strlen(text1)-1] = '\0';
+			printf("%s\n" , text1) ;
+			line++ ;
+		}
+	}
+	if(line_num1 < line_num2){
+		printf(">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n",line,line_num2) ;
+		while(1){
+			if(NULL == fgets(text2 , MAX_SIZE , fob2)){break ;}
+			if(text2[strlen(text2)-1] == '\n') text2[strlen(text2)-1] = '\0';
+			printf("%s\n" , text2) ;
+			line++ ;
+		}
+	}
+
+	return 1 ;
+
+}
+
 int main(){
 
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
@@ -616,9 +680,9 @@ int main(){
 		
 		if(!strcmp("exit",command)) return 0 ;
 		
-		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_grep , check_undo , check_auto_indent , check_tree } ;
+		int (*check_function[])(char*) = { check_createfile , check_insertstr , check_cat , check_removestr , check_copystr , check_cutstr , check_pastestr , check_find , check_replace , check_grep , check_undo , check_auto_indent , check_compare ,check_tree } ;
 		
-		for(int i = 0 ; i < 13 ; i++){
+		for(int i = 0 ; i < 14 ; i++){
 			if( (*check_function[i])(command) ){
 				command_run = 1 ;
 			}

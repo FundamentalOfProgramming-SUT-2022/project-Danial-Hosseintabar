@@ -117,3 +117,21 @@ void take_snapshot(FILE *fob , char* file_name , struct snapshot file_history[] 
 		}
 	}
 }
+
+int getwords(char *text , char words[][50] ){
+	int index = 0 ;
+	int wordcount = 0 ;
+	while( 1 ){
+		while( text[index] == ' ' ) index++ ;
+		if(text[index] == EOF || text[index] == '\0' || text[index] == '\n') break ;
+		int i = 0 ; 
+		while(text[index] != ' ' && text[index] != '\0' && text[index] != '\n'){
+			words[wordcount][i] = text[index] ;
+			i++ ;
+			index++;
+		}
+		words[wordcount][i] = '\0' ;
+		wordcount++ ;
+	}
+	return wordcount ;
+}
