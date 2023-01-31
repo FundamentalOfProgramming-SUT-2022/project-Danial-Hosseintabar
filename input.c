@@ -33,9 +33,22 @@ void get_text(char *string){
 	if(string[0] == '"' ){
 		for(int i = 0 ; ;i++){
 			string[i] = getchar() ;
-			if(string[i] == '"' && string[i-1] != '\\' ){
+			if(string[i] == '"' ){
 				string[i] = '\0' ;
 				break ;
+			}
+			if( string[i] == '\\' ){
+				switch(getchar()){
+					case 'n' :
+						string [i] = '\n' ;
+						break ;
+					case '"' : 
+						string [i] = '\"' ;
+						break ;
+					case '\\' :
+						string [i] = '\\' ;
+						break ;
+				}
 			}
 		}
 	}

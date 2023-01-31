@@ -8,15 +8,6 @@
 #define MAX_FILENAME_SIZE 256
 #define MAX_SIZE 100000
 
-struct snapshot{
-	char file_name[MAX_FILENAME_SIZE] ;
-	char **snapshot ;
-};
-
-void reset_snapshot(struct snapshot* snapshot_ptr){
-	(*snapshot_ptr).file_name[0] = '\0' ;
-	(*snapshot_ptr).snapshot = NULL ;
-}
 
 void dirtree_search(char *add , int depth , int N , FILE *fob){
 	for(int i = 0 ; i < N-1-depth ; i++){printf("    "); fprintf(fob , "    " ) ;}
@@ -94,35 +85,6 @@ void print_tab(int x , FILE *fob){
 	for(int i = 0 ;i  < x ;i++) fprintf(fob , "    ") ;
 }
 
-void take_snapshot(FILE *fob , char* file_name , struct snapshot file_history[] ){
-	fseek(fob , 0 , SEEK_END) ;
-	char *text = (char*)malloc(ftell(fob) * sizeof(char)) ;
-	fseek(fob , 0 , SEEK_SET) ;
-	readrest(text , fob) ;
-	int index = -1 ;
-	int size = 0 ;
-	for(int i = 0 ; file_history[i].file_name[0] != '\0' ; i++){
-		if(!strcmp(file_history[i].file_name , file_name)){
-			index = i ; 
-			break ;
-		}
-		size++ ;
-	}
-	if(index==-1){
-		memcpy(file_history[size].file_name,file_name,strlen(file_name)+1);
-		file_history[size].snapshot[0] = NULL;
-		file_history[size+1].file_name[0] = '\0' ;
-		index = size ;
-	}
-	for(int i = 0 ;  ;i++){
-		if(file_history[index].snapshot[i] == NULL){
-			file_history[index].snapshot[i] = text ;
-			file_history[index].snapshot[i+1] = NULL ;
-			break ;
-		}
-	}
-}
-
 int check_arman(){
 	char c = getchar() ;
 	while( c == ' ' ) c = getchar() ;
@@ -155,4 +117,22 @@ int getwords(char *text , char words[][50] ){
 void clear_file(char* file_name){
 	FILE *fob = fopen(file_name , "w") ;
 	fclose(fob) ;
+}
+
+int take_snapshot(char *file_name , int snapshot_count[] , char *snapshot[][100] , char*snapshot_fn[] , int* file_count ){
+	FILE *fp = fopen(file_name , "r") ;
+	char *text = (char*) malloc( MAX_SIZE * sizeof(char) ) ;
+	readrest(text , fp) ;
+	fclose(fp) ;
+	int file_index = *file_count ;
+	for(int i = 0 ; i < *file_count ; i++){
+		if(strcmp(file_name , snapshot_fn[i])) continue ;
+		file_index = i ;
+		break ;
+	}
+	if(file_index == *file_count) strcpy( snapshot_fn[*file_count] , file_name ) ;
+	*file_count += ( file_index == *file_count ? 1 : 0 ) ;
+	snapshot_count[file_index]++ ;
+	strcpy(snapshot[file_index][snapshot_count[file_index]-1] , text) ;
+	return 1 ;
 }

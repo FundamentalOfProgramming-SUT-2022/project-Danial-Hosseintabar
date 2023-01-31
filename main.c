@@ -5,11 +5,30 @@
 
 #include "functions.c"
 
+#define SS_MAX 100
+#define FN_MAX 50
+
+// GLOBAL ARRAYS FOR UNDO FUNCTIONING
+char *snapshot[SS_MAX][SS_MAX] ; // the first 50
+int snapshot_count[SS_MAX] ;
+char *snapshot_fn[SS_MAX] ;
+int file_count = 0 ;
+
+// GLOBAL VARIABLES FOR ARMAN COMMAND
 int arman_mode = 0 ;
 char arman_str[MAX_SIZE] ;
 FILE *tmp_file ;
 
-struct snapshot file_history[MAX_SIZE] ;
+void RESET_SS_VARS(){
+	for(int i = 0 ; i < SS_MAX ; i++){
+		snapshot_count[i] = 0 ;
+		snapshot_fn[i] = (char*)malloc(FN_MAX*sizeof(char)) ;
+		snapshot_fn[i][0] = '\0' ;
+		for(int j = 0 ; j < SS_MAX ; j++){
+			snapshot[i][j] = (char*)malloc(MAX_SIZE*sizeof(char)) ; 
+		}
+	}
+}
 
 int check_createfile(char *command){
 	char opt[MAX_SIZE] ;
@@ -50,6 +69,12 @@ int check_insertstr(char *command){
 	if(2!=scanf("%d:%d" , &line_pos , &char_pos)) return 0 ;
 	
 	// debug : printf("file : %s , str : %s , line_pos : %d , char_pos : %d \n" , file_name , string , line_pos , char_pos ) ;
+	
+	// TAKING SNAPSHOT
+
+	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
+	
+	// INSERTING
 
 	FILE *fob = fopen(file_name , "r+" ) ;
 	char *text_pre = (char*) malloc(MAX_SIZE*sizeof(char)) ;
@@ -111,6 +136,8 @@ int check_removestr(char *command){
 	scanf("%s" , arg) ;
 	if(!strcmp(arg , "-b")) mode = 1 ; // backward
 	else mode = 0 ; // forward
+
+	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
 
 	//forward
 	char text_pre[MAX_SIZE] ;
@@ -220,6 +247,8 @@ int check_cutstr(char *command){
 	scanf("%s" , arg) ;
 	if(!strcmp(arg,"-b")) mode = 1 ;
 	else mode = 0 ;
+
+	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
 
 	char string[MAX_SIZE] ;
 	FILE *fob = fopen(file_name , "r+") ;
@@ -368,15 +397,15 @@ int check_find(char *command){
 	}
 	if(!count){
 		printf("-1\n") ;
-		fprintf(tmp_file , "-1\n") ;	
+		fprintf(tmp_file , "-1") ;	
 	}
 
 	if(mask >> 3){
 		printf("%d\n" , count);
-		fprintf(tmp_file , "%d\n" , count) ;
+		fprintf(tmp_file , "%d" , count) ;
 	}
 	if((mask >> 2)&1){
-		printf("%d" , ans[at-1]) ;
+		printf("%d\n" , ans[at-1]) ;
 		fprintf(tmp_file , "%d" , ans[at-1]) ;
 	}
 	if(mask&1){
@@ -389,12 +418,11 @@ int check_find(char *command){
 			}
 			else{
 				printf("\n") ;
-				fprintf(tmp_file , "\n") ;
 			}
 		}
 	}
 	if(mask == 0){
-		fprintf(tmp_file , "%d\n" , ans[0]) ;
+		fprintf(tmp_file , "%d" , ans[0]) ;
 		printf("%d\n" , ans[0]) ;
 	}
 	fflush(tmp_file) ;
@@ -428,6 +456,8 @@ int check_replace(char *command){
 	scanf("%s" , arg) ;
 	if(strcmp(arg,"-file")) return 0 ;
 	get_address(file_name) ;
+
+	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
 
 	int at ;
 	int mode = 0 ; // 0 : normal , 1 : at , 2 : all
@@ -558,23 +588,29 @@ int check_grep(char *command){
 }
 
 int check_undo(char *command){
-	if(strcmp(command,"undo")) return 0 ;
+	if(strcmp("undo" , command)) return 0 ;
 	char arg[MAX_SIZE] ;
-	char file_name[MAX_SIZE];
+	int ok = 0 ;
+	char file_name[MAX_SIZE] ;
 	scanf("%s" , arg) ;
-	if(strcmp(arg,"-file")) return 0 ;
-	scanf("%s" , file_name) ;
-	for(int i = 0 ;file_history[i].file_name[0] != '\0' ;i++ ){
-		if(strcmp(file_history[i].file_name , file_name)) continue ;
-			
-			int index = 0 ;
-			while(file_history[i].snapshot[index][0]!='\0') index++ ;
-			index-- ;
-			printf("%s" , file_history[i].snapshot[index]) ;
-			file_history[i].snapshot[index][0] = '\0' ; 
-		
-		break ;
+	if(strcmp(arg , "-file")) return 0 ;
+	get_address(file_name) ;
+	FILE *fob ;
+	for(int i = 0 ; i < file_count ; i++){
+		if(!strcmp(file_name , snapshot_fn[i])){
+			if(snapshot_count[i] == 0) {
+				break; 
+			}
+			fob = fopen(file_name , "w") ;
+			fprintf(fob , "%s" , snapshot[i][snapshot_count[i]-1] ) ;
+			snapshot_count[i]-- ;
+			ok = 1 ;
+			break ;
+		}
 	}
+	if(ok) fclose(fob);
+	if(!ok) printf("NO UNDO CAN BE DONE\n" , file_name) ;
+	return 1 ;
 }
 
 int check_tree(char *command){
@@ -595,6 +631,8 @@ int check_auto_indent(char *command){
 	if(strcmp(arg , "-file")) return 0 ;
 	get_address(file_name) ;
 	
+	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
+
 	char *text = (char*) malloc(MAX_SIZE*sizeof(char)) ;
 	FILE *fob = fopen(file_name , "r") ;
 	readrest(text , fob) ;
@@ -621,28 +659,55 @@ int check_auto_indent(char *command){
 	}
 	qsort(opening , opening_size , sizeof(int) , cmp) ;
 	qsort(closing , closing_size , sizeof(int) , cmp) ;
+	
 	fob = fopen(file_name , "w") ;
-	for(int op_index = 0 , cl_index = 0 , tab = 0 , i = 0 ; i < strlen(text) ; i++){
+	int u = 0 ;
+	while(text[u]==' ') u++ ;
+	for(int op_index = 0 , cl_index = 0 , tab = 0  , i = u , space = 0 , a = 0 , ignore_space = 1 ; i < strlen(text) ; i++){
+		
 		if( cl_index < closing_size && i == closing[cl_index] ){
-			fprintf(fob , "\n") ;
-			print_tab(tab-1 , fob) ;
+			if( a ){
+				fprintf(fob , "\n") ;
+				print_tab(tab-1 , fob) ;
+			}
+			a = 0 ;
 			fprintf(fob , "}\n") ;
+			ignore_space = 1 ;
+			space = 0 ;
 			tab-- ;
 			cl_index++ ;
 			print_tab(tab , fob) ;
 		}
 		else if( op_index < opening_size && i == opening[op_index] ){
-			if(i>0 && text[i-1] != '\n' && text[i-1] != ' ' ) fprintf(fob , " ") ;
+			fprintf(fob , " ") ;
 			fprintf(fob , "{\n") ;
+			ignore_space = 1 ;
+			space = 0 ;
 			tab++ ;
 			op_index++ ;
+			a = 1 ;
 			print_tab(tab , fob) ;
 		}
 		else if( text[i] == '\n' ){
 			fprintf(fob , "\n") ;
+			ignore_space = 1 ;
+			space = 0 ;
 			print_tab(tab,fob) ;
+			a = 1 ;
 		}
-		else fprintf(fob , "%c" , text[i]) ;
+		else{
+			if(text[i] != ' '){
+				for(int j = 0 ; j < space ; j++) fprintf(fob , " " ) ;
+				space = 0 ;
+				fprintf(fob , "%c" , text[i]) ;
+				ignore_space = 0 ;
+			}
+			else{
+				if(!ignore_space) space++ ;
+				//if(!ignore_space) fprintf(fob , " " ) ;
+			}
+			a = 1 ;
+		}
 	}
 	fclose(fob) ;
 	
@@ -715,12 +780,11 @@ int check_compare(char *command){
 
 int main(){
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
-	// reseting all snapshots in file_history 
-	for(int i = 0 ; i < MAX_SIZE ; i++){
-		reset_snapshot(&file_history[i]) ;
-	}
-	
+	// RESET SNAPSHOT-RELATED VARIABLES
+	RESET_SS_VARS();
+	// OPENING TMP FILE
 	tmp_file = fopen("tmp_file.vim" , "w+") ;
+	// PROGRAM LOOP
 	while(1){
 		//clear_file("tmp_file.vim") ;
 		int command_run = 0 ;
