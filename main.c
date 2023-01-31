@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#include <conio.h>
 
 #include "functions.c"
 
@@ -9,7 +10,6 @@
 #define FN_MAX 50
 
 // GLOBAL ARRAYS FOR UNDO FUNCTIONING
-char *snapshot[SS_MAX][SS_MAX] ; // the first 50
 int snapshot_count[SS_MAX] ;
 char *snapshot_fn[SS_MAX] ;
 int file_count = 0 ;
@@ -24,9 +24,6 @@ void RESET_SS_VARS(){
 		snapshot_count[i] = 0 ;
 		snapshot_fn[i] = (char*)malloc(FN_MAX*sizeof(char)) ;
 		snapshot_fn[i][0] = '\0' ;
-		for(int j = 0 ; j < SS_MAX ; j++){
-			snapshot[i][j] = (char*)malloc(MAX_SIZE*sizeof(char)) ; 
-		}
 	}
 }
 
@@ -72,7 +69,7 @@ int check_insertstr(char *command){
 	
 	// TAKING SNAPSHOT
 
-	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
+	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 	
 	// INSERTING
 
@@ -137,7 +134,7 @@ int check_removestr(char *command){
 	if(!strcmp(arg , "-b")) mode = 1 ; // backward
 	else mode = 0 ; // forward
 
-	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
+	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 
 	//forward
 	char text_pre[MAX_SIZE] ;
@@ -191,7 +188,7 @@ int check_copystr(char *command){
 	else mode = 0 ;
 	
 	char trash[MAX_SIZE] ; 
-	char str[MAX_SIZE] ;
+	char *str = (char*) malloc( 1 + size * sizeof(char)) ;
 
 	FILE *fob = fopen(file_name , "r") ;
 	readto(trash , fob , line_pos , char_pos) ;
@@ -248,9 +245,9 @@ int check_cutstr(char *command){
 	if(!strcmp(arg,"-b")) mode = 1 ;
 	else mode = 0 ;
 
-	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
+	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 
-	char string[MAX_SIZE] ;
+	char *string = (char*) malloc( 1 + size*sizeof(char) ) ;
 	FILE *fob = fopen(file_name , "r+") ;
 	char text_pre[MAX_SIZE] ;
 	char text_post[MAX_SIZE] ;
@@ -302,6 +299,8 @@ int check_pastestr(char *command){
 	if(strcmp("-pos",arg)) return 0 ;
 	scanf("%d:%d" , &line_pos , &char_pos) ;
 	
+	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
+
 	OpenClipboard(0) ;
 	HANDLE in = GetClipboardData(CF_TEXT) ;
 	strcpy(string , (char*)in) ;
@@ -457,7 +456,7 @@ int check_replace(char *command){
 	if(strcmp(arg,"-file")) return 0 ;
 	get_address(file_name) ;
 
-	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
+	take_snapshot(file_name , snapshot_count  , snapshot_fn , &file_count) ;
 
 	int at ;
 	int mode = 0 ; // 0 : normal , 1 : at , 2 : all
@@ -589,6 +588,7 @@ int check_grep(char *command){
 
 int check_undo(char *command){
 	if(strcmp("undo" , command)) return 0 ;
+	char *text = (char *) malloc(MAX_SIZE * sizeof(char)) ;
 	char arg[MAX_SIZE] ;
 	int ok = 0 ;
 	char file_name[MAX_SIZE] ;
@@ -596,19 +596,27 @@ int check_undo(char *command){
 	if(strcmp(arg , "-file")) return 0 ;
 	get_address(file_name) ;
 	FILE *fob ;
+	FILE *fp ;
 	for(int i = 0 ; i < file_count ; i++){
 		if(!strcmp(file_name , snapshot_fn[i])){
 			if(snapshot_count[i] == 0) {
 				break; 
 			}
+			char *some_string = (char *)malloc(MAX_SIZE * sizeof(char) ) ;
+			strcpy(some_string , "sss") ;
+			strcat(some_string , file_name) ;
+			some_string[2] = 'A' + (snapshot_count[i]-1) ;
+			fp = fopen(some_string , "r") ;
+			readrest(text , fp) ;
+			fclose(fp) ;
 			fob = fopen(file_name , "w") ;
-			fprintf(fob , "%s" , snapshot[i][snapshot_count[i]-1] ) ;
+			fprintf(fob , "%s" , text ) ;
+			fclose(fob);
 			snapshot_count[i]-- ;
 			ok = 1 ;
 			break ;
 		}
 	}
-	if(ok) fclose(fob);
 	if(!ok) printf("NO UNDO CAN BE DONE\n" , file_name) ;
 	return 1 ;
 }
@@ -631,7 +639,7 @@ int check_auto_indent(char *command){
 	if(strcmp(arg , "-file")) return 0 ;
 	get_address(file_name) ;
 	
-	take_snapshot(file_name , snapshot_count , snapshot , snapshot_fn , &file_count) ;
+	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 
 	char *text = (char*) malloc(MAX_SIZE*sizeof(char)) ;
 	FILE *fob = fopen(file_name , "r") ;
@@ -786,7 +794,7 @@ int main(){
 	tmp_file = fopen("tmp_file.vim" , "w+") ;
 	// PROGRAM LOOP
 	while(1){
-		//clear_file("tmp_file.vim") ;
+		if(!arman_mode) clear_file("tmp_file.vim") ;
 		int command_run = 0 ;
 		char command[MAX_SIZE] ;
 
@@ -810,5 +818,14 @@ int main(){
 
 	}
 	fclose(tmp_file) ;
+	for(int i = 0 ; i < file_count  ; i++){
+		for(int j = 0 ; j < snapshot_count[i] ; j++){
+			char *name = (char*) malloc(MAX_SIZE * sizeof(char)) ;
+			strcpy(name , "sss") ;
+			strcat(name , snapshot_fn[i]) ;
+			name[2] = 'A' + j ;
+			remove(name) ;
+		}
+	}
 	remove("tmp_file.vim");
 }

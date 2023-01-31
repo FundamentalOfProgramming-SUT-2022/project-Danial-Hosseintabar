@@ -119,11 +119,13 @@ void clear_file(char* file_name){
 	fclose(fob) ;
 }
 
-int take_snapshot(char *file_name , int snapshot_count[] , char *snapshot[][100] , char*snapshot_fn[] , int* file_count ){
+int take_snapshot(char *file_name , int snapshot_count[] , char*snapshot_fn[] , int* file_count ){
+	
 	FILE *fp = fopen(file_name , "r") ;
 	char *text = (char*) malloc( MAX_SIZE * sizeof(char) ) ;
 	readrest(text , fp) ;
 	fclose(fp) ;
+
 	int file_index = *file_count ;
 	for(int i = 0 ; i < *file_count ; i++){
 		if(strcmp(file_name , snapshot_fn[i])) continue ;
@@ -133,6 +135,14 @@ int take_snapshot(char *file_name , int snapshot_count[] , char *snapshot[][100]
 	if(file_index == *file_count) strcpy( snapshot_fn[*file_count] , file_name ) ;
 	*file_count += ( file_index == *file_count ? 1 : 0 ) ;
 	snapshot_count[file_index]++ ;
-	strcpy(snapshot[file_index][snapshot_count[file_index]-1] , text) ;
+	
+	char *snapshot_file_name = (char*)malloc(256*sizeof(char)) ;
+	strcpy(snapshot_file_name , "ss_") ;
+	snapshot_file_name[2] = 'A'+(snapshot_count[file_index]-1) ;
+	strcat(snapshot_file_name , file_name) ;
+	FILE *fob = fopen(snapshot_file_name,"w+") ;
+	fprintf(fob , "%s" , text) ;
+	//strcpy(snapshot[file_index][snapshot_count[file_index]-1] , text) ;
+	fclose(fob) ;
 	return 1 ;
 }
