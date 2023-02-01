@@ -17,7 +17,6 @@ int file_count = 0 ;
 // GLOBAL VARIABLES FOR ARMAN COMMAND
 int arman_mode = 0 ;
 char arman_str[MAX_SIZE] ;
-FILE *tmp_file ;
 
 void RESET_SS_VARS(){
 	for(int i = 0 ; i < SS_MAX ; i++){
@@ -57,8 +56,10 @@ int check_insertstr(char *command){
 	
 	if(!arman_mode){get_str_arg(string) ;}
 	else{
+		FILE *tmp_file = fopen("tmp_file.vim" , "r") ;
 		fseek(tmp_file , 0 , SEEK_SET) ;
 		readrest(string , tmp_file) ;
+		fclose(tmp_file) ;
 		arman_mode = 0 ;
 	}
 	scanf("%s" , opt ) ;
@@ -66,7 +67,7 @@ int check_insertstr(char *command){
 	if(2!=scanf("%d:%d" , &line_pos , &char_pos)) return 0 ;
 	
 	// debug : printf("file : %s , str : %s , line_pos : %d , char_pos : %d \n" , file_name , string , line_pos , char_pos ) ;
-	
+
 	// TAKING SNAPSHOT
 
 	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
@@ -102,8 +103,7 @@ int check_cat(char *command){
 
 	if(check_arman()){
 		arman_mode = 1 ;
-		fprintf(tmp_file,"%s",text);
-		fflush(tmp_file) ;
+		arman_save(text) ;
 	}
 
 	return 1 ;
@@ -329,9 +329,11 @@ int check_find(char *command){
 	
 	if(!arman_mode) get_str_arg(string) ;
 	else{
+		FILE *tmp_file = fopen("tmp_file.vim","r") ;
 		fseek(tmp_file , 0 , SEEK_SET) ;
 		readrest(string,tmp_file) ;
 		arman_mode = 0 ;
+		fclose(tmp_file) ;
 	}
 
 	scanf("%s" , arg) ;
@@ -342,6 +344,7 @@ int check_find(char *command){
 	char c = getchar() ;
 	
 	while(c!='\n'){
+		c = getchar() ;
 		while(c==' ') c = getchar() ;
 		if(c == '\n') break ;
 		scanf("%s" , arg) ;
@@ -394,9 +397,14 @@ int check_find(char *command){
 			}
 		}
 	}
+
+	
+	FILE *tmp_file = fopen("tmp_file.vim" , "w") ;
+
 	if(!count){
 		printf("-1\n") ;
 		fprintf(tmp_file , "-1") ;	
+		return 1 ;
 	}
 
 	if(mask >> 3){
@@ -424,7 +432,7 @@ int check_find(char *command){
 		fprintf(tmp_file , "%d" , ans[0]) ;
 		printf("%d\n" , ans[0]) ;
 	}
-	fflush(tmp_file) ;
+	fclose(tmp_file) ;
 	return 1 ;
 
 }
@@ -442,10 +450,12 @@ int check_replace(char *command){
 		get_text(string1) ;
 	}
 	else{
+		FILE *tmp_file = fopen("tmp_file" , "r") ;
 		fseek(tmp_file,0,SEEK_SET) ;
 		readrest(string1 , tmp_file) ;
 		printf(" string : %s",string1) ;
 		arman_mode = 0 ;
+		fclose(tmp_file) ;
 	}
 
 	scanf("%s" , arg) ;
@@ -530,14 +540,17 @@ int check_grep(char *command){
 	}
 	if(!arman_mode) get_text(string) ;
 	else{
+		FILE *tmp_file = fopen("tmp_file.vim" , "r") ;
 		fseek(tmp_file , 0 , SEEK_SET) ;
 		readrest(string , tmp_file) ;
+		fclose(tmp_file) ;
 	}
 	if(!arman_mode){
 		scanf("%s" , arg) ;
 		if(strcmp("-files" , arg)) return 0 ;
 	}
 	if(arman_mode) arman_mode = 0 ;
+	FILE *tmp_file = fopen("tmp_file.vim" , "w") ;
 	int count =  0;
 	while(get_address(file_name)){
 		if( !strcmp(file_name,"=D") ){
@@ -577,7 +590,7 @@ int check_grep(char *command){
 		}
 		if(file_ok && mode == 1) continue ;
 	}
-	fflush(tmp_file) ;
+	fclose(tmp_file);
 	if(mode == 2){
 		printf("%d\n" , count) ;
 		fprintf(tmp_file , "%d\n" , count);
@@ -624,9 +637,15 @@ int check_undo(char *command){
 int check_tree(char *command){
 	if(strcmp(command,"tree")) return 0 ;
 	int depth ;
+	FILE *tmp_file = fopen("tmp_file.vim" , "w") ; 
 	if(!scanf("%d" , &depth)) return 0 ;
-	dirtree_search("." , depth , depth+1 , tmp_file) ;
-	fflush(tmp_file) ;
+	if(depth == -1) depth = 1000 ;
+	if(depth < -1){
+		printf("INVALID DEPTH\n") ;
+		return 1 ;
+	}
+	dirtree_search("./root" , depth , depth+1 , tmp_file) ;
+	fclose(tmp_file) ;
 	if(check_arman()) arman_mode = 1 ;
 	return 1 ;
 }
@@ -791,10 +810,9 @@ int main(){
 	// RESET SNAPSHOT-RELATED VARIABLES
 	RESET_SS_VARS();
 	// OPENING TMP FILE
-	tmp_file = fopen("tmp_file.vim" , "w+") ;
+	fopen("tmp_file.vim" , "w+") ;
 	// PROGRAM LOOP
 	while(1){
-		if(!arman_mode) clear_file("tmp_file.vim") ;
 		int command_run = 0 ;
 		char command[MAX_SIZE] ;
 
@@ -817,7 +835,6 @@ int main(){
 		}
 
 	}
-	fclose(tmp_file) ;
 	for(int i = 0 ; i < file_count  ; i++){
 		for(int j = 0 ; j < snapshot_count[i] ; j++){
 			char *name = (char*) malloc(MAX_SIZE * sizeof(char)) ;

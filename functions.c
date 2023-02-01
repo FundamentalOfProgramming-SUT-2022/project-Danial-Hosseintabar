@@ -61,13 +61,16 @@ int is_prefix(char *prefix , char *string){
 	int N = strlen(string) ;
 	if(n>N) return 0 ;
 	for(int i = 0 ; i < n ; i++){
-		if(prefix[i] != '*'){
+		if(prefix[i] == '\\' && prefix[i+1] == '*' ){
+			if( string[i] != '*' ) return 0 ;
+			return is_prefix( prefix+i+2 , string+i+1 ) ;
+		}
+		else if(prefix[i] != '*'){
 			if(prefix[i] != string[i]) return 0 ;
 		}
-		if(prefix[i] == '*'){
+		else if(prefix[i] == '*'){
 			int ret = 0 ;
-			// ret = is_prefix(prefix+(i+1),string+(i+1)) | is_prefix(prefix+(i+1),string+(i+2)) | is_prefix(prefix+(i+1),string+(i+3)) | ...
-			for(int j = 1 ; i+j <= strlen(string) ; j++){
+			for(int j = 1  ; (string[i+j-1] != EOF) && (string[i+j-1] != '\n') && (string[i+j-1] != ' ') && (i+j <= strlen(string)) ; j++){
 				ret |= is_prefix(prefix+(i+1) , string+(i+j) ) ;
 			} 
 			return ret ;
@@ -145,4 +148,10 @@ int take_snapshot(char *file_name , int snapshot_count[] , char*snapshot_fn[] , 
 	//strcpy(snapshot[file_index][snapshot_count[file_index]-1] , text) ;
 	fclose(fob) ;
 	return 1 ;
+}
+
+void arman_save(char *text){
+	FILE *fob = fopen("tmp_file.vim" , "w") ;
+	fprintf(fob , "%s" , text) ;
+	fclose(fob) ;
 }

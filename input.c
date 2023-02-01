@@ -2,10 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-
 #define MAX_SIZE 100000
-
-
 
 int get_address(char *string){
 	string[0] = getchar() ;
@@ -23,6 +20,10 @@ int get_address(char *string){
 	else{
 		scanf("%s" , string+1) ;
 	}
+	char *sstring = (char*)malloc(MAX_SIZE * sizeof(char) ) ;
+	strcpy(sstring , ".") ;
+	strcat(sstring,string) ;
+	if(string[0]=='/' && string[1]=='r') strcpy(string , sstring) ;
 	return 1 ;
 }
 
@@ -47,6 +48,11 @@ void get_text(char *string){
 						break ;
 					case '\\' :
 						string [i] = '\\' ;
+						break ;
+					case '*' :
+						string[i] = '\\' ;
+						string[i+1] = '*';
+						i++;
 						break ;
 				}
 			}
