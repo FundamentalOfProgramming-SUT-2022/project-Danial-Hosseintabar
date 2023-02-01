@@ -5,9 +5,16 @@
 
 #include "input.c"
 
-#define MAX_FILENAME_SIZE 256
+#define MAX_FILENAME_SIZE 1000
 #define MAX_SIZE 100000
 
+char *name_of_file(char *address){
+	int u = 0 ;
+	for(int i = 0 ; i < strlen(address) ; i++){
+		if(address[i] == '/') u = i ;
+	}
+	return address+u+1 ;
+}
 
 void dirtree_search(char *add , int depth , int N , FILE *fob){
 	for(int i = 0 ; i < N-1-depth ; i++){printf("    "); fprintf(fob , "    " ) ;}
@@ -134,7 +141,6 @@ int take_snapshot(char *file_name , int snapshot_count[] , char*snapshot_fn[] , 
 	char *text = (char*) malloc( MAX_SIZE * sizeof(char) ) ;
 	readrest(text , fp) ;
 	fclose(fp) ;
-
 	int file_index = *file_count ;
 	for(int i = 0 ; i < *file_count ; i++){
 		if(strcmp(file_name , snapshot_fn[i])) continue ;
@@ -144,11 +150,12 @@ int take_snapshot(char *file_name , int snapshot_count[] , char*snapshot_fn[] , 
 	if(file_index == *file_count) strcpy( snapshot_fn[*file_count] , file_name ) ;
 	*file_count += ( file_index == *file_count ? 1 : 0 ) ;
 	snapshot_count[file_index]++ ;
-	
-	char *snapshot_file_name = (char*)malloc(256*sizeof(char)) ;
-	strcpy(snapshot_file_name , "ss_") ;
+	char *snapshot_file_name = (char*)malloc(1000*sizeof(char)) ;
+	strcpy(snapshot_file_name , "ss__") ;
 	snapshot_file_name[2] = 'A'+(snapshot_count[file_index]-1) ;
+	file_name = name_of_file(file_name) ;
 	strcat(snapshot_file_name , file_name) ;
+	//printf("writin to %s\n" , snapshot_file_name) ;
 	FILE *fob = fopen(snapshot_file_name,"w+") ;
 	fprintf(fob , "%s" , text) ;
 	//strcpy(snapshot[file_index][snapshot_count[file_index]-1] , text) ;
@@ -157,7 +164,33 @@ int take_snapshot(char *file_name , int snapshot_count[] , char*snapshot_fn[] , 
 }
 
 void arman_save(char *text){
-	FILE *fob = fopen("tmp_file.vim" , "w") ;
+	FILE *fob = fopen("tmp_file.txt" , "w") ;
 	fprintf(fob , "%s" , text) ;
 	fclose(fob) ;
+}
+
+void stroneline(char *text){
+	int n = strlen(text) ;
+	char *newtext = (char *)malloc(MAX_SIZE * sizeof(char)) ;
+	int newtext_size = 0 ;
+	for(int i = 0 ; i < n ; i++){
+		if(text[i] != '\n'){
+			newtext[newtext_size] = text[i] ;
+			newtext_size++ ;
+		}
+	}
+	newtext[newtext_size] = '\0' ;
+	strcpy(text , newtext) ;
+}
+
+void make_dir(char *add){
+	char *text = (char*) malloc(MAX_SIZE * sizeof(char)) ;
+	strcpy(text , add) ;
+	for(int i = 0 ; i < strlen(text) ; i++){
+		if( text[i] == '/' ){
+			text[i] = '\0';
+			mkdir(text) ;
+			text[i] = '/' ;
+		}
+	}
 }

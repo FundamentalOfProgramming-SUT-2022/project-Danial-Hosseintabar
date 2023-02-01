@@ -7,7 +7,7 @@
 #include "functions.c"
 
 #define SS_MAX 100
-#define FN_MAX 50
+#define FN_MAX 1000
 
 // GLOBAL ARRAYS FOR UNDO FUNCTIONING
 int snapshot_count[SS_MAX] ;
@@ -34,9 +34,20 @@ int check_createfile(char *command){
 	if(strcmp("-file" , opt)) return 0 ;
 	getchar() ;
 	get_address(add) ;
-	FILE *fob = fopen(add , "a") ;
-	fclose(fob) ;
-	return 1 ;
+	if(fopen(add , "r") == NULL){
+		make_dir(add) ;
+		FILE *fob = fopen(add , "a") ;
+		fclose(fob) ;
+		return 1 ;
+	}
+	else{
+		printf("FILE ALREADY EXISTS!\n") ;
+		if(check_arman()){
+			arman_mode = 1 ;
+			arman_save("FILE ALREADY EXISTS!\n") ;
+		}
+		return 1 ;
+	}
 }
 
 int check_insertstr(char *command){
@@ -54,9 +65,10 @@ int check_insertstr(char *command){
 	if(strcmp(opt , "-file")) return 0 ;
 	get_address(file_name) ;
 	
+
 	if(!arman_mode){get_str_arg(string) ;}
 	else{
-		FILE *tmp_file = fopen("tmp_file.vim" , "r") ;
+		FILE *tmp_file = fopen("tmp_file.txt" , "r") ;
 		fseek(tmp_file , 0 , SEEK_SET) ;
 		readrest(string , tmp_file) ;
 		fclose(tmp_file) ;
@@ -68,18 +80,26 @@ int check_insertstr(char *command){
 	
 	// debug : printf("file : %s , str : %s , line_pos : %d , char_pos : %d \n" , file_name , string , line_pos , char_pos ) ;
 
+	if(fopen(file_name , "r") == NULL){
+		printf("WRONG ADDRESS!\n") ;
+		if(check_arman()){
+			arman_save("WRONG ADDRESS!\n") ;
+			arman_mode = 1; 
+		}
+		return 1 ;
+	}
 	// TAKING SNAPSHOT
 
 	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 	
 	// INSERTING
-
-	FILE *fob = fopen(file_name , "r+" ) ;
+	FILE *fob = fopen(file_name , "r" ) ;
 	char *text_pre = (char*) malloc(MAX_SIZE*sizeof(char)) ;
 	char *text_post = (char*) malloc(MAX_SIZE*sizeof(char)) ;
 	readto(text_pre , fob , line_pos , char_pos) ;
 	readrest(text_post , fob) ;
 	fclose(fob) ;
+
 	fob = fopen(file_name , "w") ;
 	fprintf(fob , "%s%s%s" ,text_pre , string , text_post) ;
 	fclose(fob) ;
@@ -95,6 +115,14 @@ int check_cat(char *command){
 	if(strcmp(opt,"-file")) return 0 ;
 	getchar() ;
 	get_address(add) ;
+	if(NULL == fopen(add , "r")){
+		printf("WRONG ADDRESS\n") ;
+		if(check_arman()){
+			arman_save("WRONG ADDRESS") ;
+			arman_mode = 1 ;
+		}
+		return 1 ;
+	}
 	FILE *fob = fopen(add , "r") ;
 	char *text = (char*)malloc(MAX_SIZE*sizeof(char)) ;
 	readrest(text , fob) ;
@@ -133,6 +161,15 @@ int check_removestr(char *command){
 	scanf("%s" , arg) ;
 	if(!strcmp(arg , "-b")) mode = 1 ; // backward
 	else mode = 0 ; // forward
+
+	if(NULL == fopen(file_name , "r") ){
+		printf("WRONG ADDRESS!\n") ;
+		if(check_arman()){
+			arman_save("WRONG ADDRESS!") ;
+			arman_mode = 1 ;
+		}
+		return 1 ;
+	}
 
 	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 
@@ -186,7 +223,16 @@ int check_copystr(char *command){
 	scanf("%s" , arg) ;
 	if(!strcmp(arg,"-b")) mode = 1 ;
 	else mode = 0 ;
-	
+
+	if(NULL == fopen(file_name , "r") ){
+		printf("WRONG ADDRESS!\n") ;
+		if(check_arman()){
+			arman_save("WRONG ADDRESS!") ;
+			arman_mode = 1 ;
+		}
+		return 1 ;
+	}
+
 	char trash[MAX_SIZE] ; 
 	char *str = (char*) malloc( 1 + size * sizeof(char)) ;
 
@@ -245,6 +291,15 @@ int check_cutstr(char *command){
 	if(!strcmp(arg,"-b")) mode = 1 ;
 	else mode = 0 ;
 
+	if(NULL == fopen(file_name , "r") ){
+		printf("WRONG ADDRESS!\n") ;
+		if(check_arman()){
+			arman_save("WRONG ADDRESS!") ;
+			arman_mode = 1 ;
+		}
+		return 1 ;
+	}
+
 	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 
 	char *string = (char*) malloc( 1 + size*sizeof(char) ) ;
@@ -298,7 +353,16 @@ int check_pastestr(char *command){
 	scanf("%s" , arg) ;
 	if(strcmp("-pos",arg)) return 0 ;
 	scanf("%d:%d" , &line_pos , &char_pos) ;
-	
+
+	if(NULL == fopen(file_name , "r") ){
+		printf("WRONG ADDRESS!\n") ;
+		if(check_arman()){
+			arman_save("WRONG ADDRESS!") ;
+			arman_mode = 1 ;
+		}
+		return 1 ;
+	}
+
 	take_snapshot(file_name , snapshot_count , snapshot_fn , &file_count) ;
 
 	OpenClipboard(0) ;
@@ -329,7 +393,7 @@ int check_find(char *command){
 	
 	if(!arman_mode) get_str_arg(string) ;
 	else{
-		FILE *tmp_file = fopen("tmp_file.vim","r") ;
+		FILE *tmp_file = fopen("tmp_file.txt","r") ;
 		fseek(tmp_file , 0 , SEEK_SET) ;
 		readrest(string,tmp_file) ;
 		arman_mode = 0 ;
@@ -367,6 +431,15 @@ int check_find(char *command){
 		}
 	}
 
+	if(NULL == fopen(file_name , "r") ){
+		printf("WRONG ADDRESS!\n") ;
+		if(check_arman()){
+			arman_save("WRONG ADDRESS!") ;
+			arman_mode = 1 ;
+		}
+		return 1 ;
+	}
+
 	char *text = (char*) malloc(MAX_SIZE * sizeof(char) ) ;
 	FILE *fob = fopen(file_name , "r") ;
 	readrest(text , fob) ;
@@ -399,7 +472,7 @@ int check_find(char *command){
 	}
 
 	
-	FILE *tmp_file = fopen("tmp_file.vim" , "w") ;
+	FILE *tmp_file = fopen("tmp_file.txt" , "w") ;
 
 	if(!count){
 		printf("-1\n") ;
@@ -513,6 +586,11 @@ int check_replace(char *command){
 	}
 	fclose(fob) ;
 
+	if(check_arman()){
+		arman_save("Operation Successful!") ;
+		arman_mode = 1 ;
+	}
+	printf("Operation Successful!\n") ;
 	return 1 ;
 }
 
@@ -540,7 +618,7 @@ int check_grep(char *command){
 	}
 	if(!arman_mode) get_text(string) ;
 	else{
-		FILE *tmp_file = fopen("tmp_file.vim" , "r") ;
+		FILE *tmp_file = fopen("tmp_file.txt" , "r") ;
 		fseek(tmp_file , 0 , SEEK_SET) ;
 		readrest(string , tmp_file) ;
 		fclose(tmp_file) ;
@@ -550,7 +628,7 @@ int check_grep(char *command){
 		if(strcmp("-files" , arg)) return 0 ;
 	}
 	if(arman_mode) arman_mode = 0 ;
-	FILE *tmp_file = fopen("tmp_file.vim" , "w") ;
+	FILE *tmp_file = fopen("tmp_file.txt" , "w") ;
 	int count =  0;
 	while(get_address(file_name)){
 		if( !strcmp(file_name,"=D") ){
@@ -604,7 +682,7 @@ int check_undo(char *command){
 	char *text = (char *) malloc(MAX_SIZE * sizeof(char)) ;
 	char arg[MAX_SIZE] ;
 	int ok = 0 ;
-	char file_name[MAX_SIZE] ;
+	char *file_name = (char*) malloc(MAX_SIZE * sizeof(char)) ;
 	scanf("%s" , arg) ;
 	if(strcmp(arg , "-file")) return 0 ;
 	get_address(file_name) ;
@@ -616,9 +694,11 @@ int check_undo(char *command){
 				break; 
 			}
 			char *some_string = (char *)malloc(MAX_SIZE * sizeof(char) ) ;
-			strcpy(some_string , "sss") ;
-			strcat(some_string , file_name) ;
+			strcpy(some_string , "sss_") ;
+			strcat(some_string , name_of_file(file_name) ) ;
 			some_string[2] = 'A' + (snapshot_count[i]-1) ;
+			some_string[3] = '_' ;
+			printf("%s\n" , some_string) ;
 			fp = fopen(some_string , "r") ;
 			readrest(text , fp) ;
 			fclose(fp) ;
@@ -637,7 +717,7 @@ int check_undo(char *command){
 int check_tree(char *command){
 	if(strcmp(command,"tree")) return 0 ;
 	int depth ;
-	FILE *tmp_file = fopen("tmp_file.vim" , "w") ; 
+	FILE *tmp_file = fopen("tmp_file.txt" , "w") ; 
 	if(!scanf("%d" , &depth)) return 0 ;
 	if(depth == -1) depth = 1000 ;
 	if(depth < -1){
@@ -670,6 +750,8 @@ int check_auto_indent(char *command){
 	int tmp_op_size = 0 ;
 	int closing_size = 0 ;
 	int opening_size = 0 ;
+	
+	stroneline(text) ;
 	
 	for(int i = 0 ; i < strlen(text) ; i++){
 		if(text[i] == '{'){
@@ -809,8 +891,8 @@ int main(){
 	printf("FOP 2022 PROJECT : Danial Hosseintabar\n") ;
 	// RESET SNAPSHOT-RELATED VARIABLES
 	RESET_SS_VARS();
-	// OPENING TMP FILE
-	fopen("tmp_file.vim" , "w+") ;
+	// CREATING TMP_FILE
+	fclose(fopen("tmp_file.txt" , "w+")) ;
 	// PROGRAM LOOP
 	while(1){
 		int command_run = 0 ;
@@ -838,11 +920,11 @@ int main(){
 	for(int i = 0 ; i < file_count  ; i++){
 		for(int j = 0 ; j < snapshot_count[i] ; j++){
 			char *name = (char*) malloc(MAX_SIZE * sizeof(char)) ;
-			strcpy(name , "sss") ;
-			strcat(name , snapshot_fn[i]) ;
+			strcpy(name , "sss_") ;
+			strcat(name , name_of_file(snapshot_fn[i])) ;
 			name[2] = 'A' + j ;
 			remove(name) ;
 		}
 	}
-	remove("tmp_file.vim");
+	remove("tmp_file.txt");
 }

@@ -39,20 +39,22 @@ void get_text(char *string){
 				break ;
 			}
 			if( string[i] == '\\' ){
-				switch(getchar()){
+				char ch = getchar() ;
+				switch(ch){
 					case 'n' :
 						string [i] = '\n' ;
 						break ;
 					case '"' : 
 						string [i] = '\"' ;
 						break ;
-					case '\\' :
-						string [i] = '\\' ;
-						break ;
 					case '*' :
 						string[i] = '\\' ;
 						string[i+1] = '*';
 						i++;
+						break ;
+					default :
+						string[i] = '\\' ;
+						string[i+1] = ch ;
 						break ;
 				}
 			}
