@@ -80,6 +80,12 @@ int is_prefix(char *prefix , char *string){
 	return 1 ;
 }
 
+int check_path(char *add){
+	int n = strlen(add) ;
+	int u ;
+	for(int i = 0 ; i < n ; i++) if(add[i] == '/') u = i ;
+}
+
 int cmp( const void* a ,const void *b){
 	return *((int*)a) > *((int*)b) ;
 }

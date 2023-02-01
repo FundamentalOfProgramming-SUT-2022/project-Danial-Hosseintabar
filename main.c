@@ -690,40 +690,41 @@ int check_auto_indent(char *command){
 	fob = fopen(file_name , "w") ;
 	int u = 0 ;
 	while(text[u]==' ') u++ ;
-	for(int op_index = 0 , cl_index = 0 , tab = 0  , i = u , space = 0 , a = 0 , ignore_space = 1 ; i < strlen(text) ; i++){
+	for(int op_index = 0 , cl_index = 0 , tab = 0  , start_of_line = 1 , i = u , space = 0 , ignore_space = 1 ; i < strlen(text) ; i++){
 		
 		if( cl_index < closing_size && i == closing[cl_index] ){
-			if( a ){
+			if(start_of_line) print_tab(tab-1 , fob) ;
+			if(!ignore_space){
 				fprintf(fob , "\n") ;
-				print_tab(tab-1 , fob) ;
+				print_tab(tab-1 ,fob ) ;
 			}
-			a = 0 ;
 			fprintf(fob , "}\n") ;
+			start_of_line = 1 ;
 			ignore_space = 1 ;
 			space = 0 ;
 			tab-- ;
 			cl_index++ ;
-			print_tab(tab , fob) ;
 		}
 		else if( op_index < opening_size && i == opening[op_index] ){
-			fprintf(fob , " ") ;
+			if(start_of_line) print_tab(tab , fob) ;
+			if(!ignore_space) fprintf(fob , " ") ;
 			fprintf(fob , "{\n") ;
+			start_of_line = 1;
 			ignore_space = 1 ;
 			space = 0 ;
 			tab++ ;
 			op_index++ ;
-			a = 1 ;
-			print_tab(tab , fob) ;
 		}
 		else if( text[i] == '\n' ){
 			fprintf(fob , "\n") ;
 			ignore_space = 1 ;
 			space = 0 ;
-			print_tab(tab,fob) ;
-			a = 1 ;
+			start_of_line = 1 ;
 		}
 		else{
 			if(text[i] != ' '){
+				if(start_of_line) print_tab(tab , fob) ;
+				start_of_line = 0 ;
 				for(int j = 0 ; j < space ; j++) fprintf(fob , " " ) ;
 				space = 0 ;
 				fprintf(fob , "%c" , text[i]) ;
@@ -733,7 +734,6 @@ int check_auto_indent(char *command){
 				if(!ignore_space) space++ ;
 				//if(!ignore_space) fprintf(fob , " " ) ;
 			}
-			a = 1 ;
 		}
 	}
 	fclose(fob) ;
