@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-#include <conio.h>
 
 #include "functions.c"
 
@@ -402,7 +401,7 @@ int check_find(char *command){
 
 	scanf("%s" , arg) ;
 	if(strcmp(arg , "-file")) return 0 ;
-	scanf("%s" , file_name) ;
+	get_address(file_name) ;
 	int at = -1 ;
 	int mask = 0 ; // mask = count , at , byword , all
 	char c = getchar() ;
@@ -526,7 +525,6 @@ int check_replace(char *command){
 		FILE *tmp_file = fopen("tmp_file" , "r") ;
 		fseek(tmp_file,0,SEEK_SET) ;
 		readrest(string1 , tmp_file) ;
-		printf(" string : %s",string1) ;
 		arman_mode = 0 ;
 		fclose(tmp_file) ;
 	}
@@ -573,20 +571,36 @@ int check_replace(char *command){
 			i+=strlen(string1)-1;
 		}
 	}
-
-	fob = fopen(file_name , "w") ;
-	for(int u = 0 , i = 0 ; i < strlen(text) ; i++){
-		if(ans[u] == i){
-			u++ ;
-			fprintf(fob , "%s" , string2) ;
-			i+= strlen(string1) - 1 ;
-			continue ;
+	
+	// replacing all the matches
+	if( mode == 0 || mode == 2 ){
+		fob = fopen(file_name , "w") ;
+		for(int u = 0 , i = 0 ; i < strlen(text) ; i++){
+			if(ans[u] == i){
+				u++ ;
+				fprintf(fob , "%s" , string2) ;
+				i += strlen(string1) - 1 ;
+				continue ;
+			}
+			fprintf(fob , "%c" , text[i] ) ;
 		}
-		fprintf(fob , "%c" , text[i] ) ;
+		fclose(fob) ;
 	}
-	fclose(fob) ;
 
-	if(check_arman()){
+	if( mode == 1 ){
+		fob = fopen(file_name , "w") ;
+		for(int i = 0 ; i < strlen(text) ; i++){
+			if(ans[at-1] == i){
+				fprintf(fob , "%s" , string2) ;
+				i += strlen(string1) - 1 ;
+				continue ;
+			}
+			fprintf(fob , "%c" , text[i] ) ;
+		}
+		fclose(fob) ;
+	}
+
+	if( c!= '\n' && check_arman()){
 		arman_save("Operation Successful!") ;
 		arman_mode = 1 ;
 	}
