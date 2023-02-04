@@ -16,6 +16,52 @@ char *name_of_file(char *address){
 	return address+u+1 ;
 }
 
+void strdel(char *str , int index){
+	for(int i = index ; i < strlen(str) ; i++){
+		str[i] = str[i+1] ;
+	}
+}
+
+void copytoclipboard( char *string ){
+	const char* output = string ;
+	const size_t len = strlen(output) + 1;
+	HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, len);
+	memcpy(GlobalLock(hMem), output, len);
+	GlobalUnlock(hMem);
+	OpenClipboard(0);
+	EmptyClipboard();
+	SetClipboardData(CF_TEXT, hMem);
+	CloseClipboard();
+}
+
+void insrtchtostr(char *str , char ch , int index ){
+	char *nstr = (char*) malloc( MAX_SIZE * sizeof(char) ) ;
+	for(int i = 0 ; i < index ; i++){
+		nstr[i] = str[i] ;
+	}
+	nstr[index] = ch ;
+	for(int i = index ; i < strlen(str) ; i++){
+		nstr[i+1] = str[i] ;
+	}
+	nstr[strlen(str)+1] = '\0' ;
+	strcpy(str , nstr) ;
+}	
+
+void insrtstrtostr( char *a , char*b , int index ){
+	char *nstr = (char*) malloc( MAX_SIZE * sizeof(char) ) ;
+	for(int i = 0 ; i < index ;i++){
+		nstr[i] = b[i] ;
+	}
+	for(int i = 0 ; i< strlen(a) ;i++){
+		nstr[ index + i ] = a[i] ;
+	}
+	for(int i = index ; i < strlen(b) ; i++){
+		nstr[i+strlen(a)] = b[i] ;
+	}
+	nstr[strlen(a) + strlen(b) ] = '\0' ;
+	strcpy(b,nstr) ;
+}
+
 void dirtree_search(char *add , int depth , int N , FILE *fob){
 	for(int i = 0 ; i < N-1-depth ; i++){printf("    "); fprintf(fob , "    " ) ;}
 	int p = 0;
